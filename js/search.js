@@ -162,9 +162,9 @@ sWangpan.onclick = function () {
 
 //BT
 sBt.onclick = function () {
-    p='https://www.bturl.cc/search/';
-    n='_ctime_1.html';
-    s='https://www.bturl.cc'
+    p='https://yandex.com/search/?text=';
+    n='';
+    s='ttps://yandex.com/'
     doAction(p,n,s);
 }
 
