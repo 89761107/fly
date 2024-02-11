@@ -154,9 +154,9 @@ sYingshi.onclick = function () {
 
 //Wangpan
 sWangpan.onclick = function () {
-    p='http://www.panuso.com/s/';
-    n='.html';
-    s='http://www.panuso.com'
+    p='https://zh.wikipedia.org/wiki/';
+    n='';
+    s='https://zh.wikipedia.org'
     doAction(p,n,s);
 }
 
