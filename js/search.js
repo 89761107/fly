@@ -146,9 +146,9 @@ sBilibili.onclick =function () {
 
 //YingShi
 sYingshi.onclick = function () {
-    p='http://ifkdy.com/?q=';
-    n='&p=1';
-    s='http://ifkdy.com/';
+    p='https://cn.bing.com/search?q=';
+    n='site%3Arutracker.org';
+    s='https://cn.bing.com';
     doAction(p,n,s);
 }
 
@@ -175,11 +175,5 @@ sFanyi.onclick = function (){
     s='https://fanyi.baidu.com/';
     doAction(p,n,s);
 }
-console.log("                                  ");
-console.log("   - 欢迎来到Morey的个人导航 -     ");
-console.log("===============================");
-console.log("                          ");
-console.log("       老哥，你好啊~      ");
-console.log("                          ");
-console.log("===============================")
+
 
