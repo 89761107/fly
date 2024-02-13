@@ -117,9 +117,9 @@ sZhihu.onclick= function () {
 }
 //jd
 sJd.onclick = function () {
-    p='https://search.jd.com/Search?enc=utf-8&keyword=';
+    p='http://clm16.cc/search?word=';
     n='';
-    s='https://search.jd.com/'
+    s='http://clm16.cc/'
     doAction(p,n,s);
 }
 //TaoBao
