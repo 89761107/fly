@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极简导航</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --bg: #f8f9fa;
+            --border: #e0e0e0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, system-ui;
+            background: var(--bg);
+            color: var(--primary);
+            line-height: 1.5;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .search-container {
+            margin: 40px 0;
+        }
+
+        .engine-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .engine-btn {
+            padding: 4px 12px;
+            border: 1px solid var(--border);
+            background: none;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .engine-btn.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        #searchInput {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 16px;
+            background: white;
+        }
+
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            margin: 30px 0;
+        }
+
+        .link-item {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            text-align: center;
+            background: white;
+            text-decoration: none;
+            color: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .link-item:hover {
+            border-color: var(--primary);
+        }
+
+        .settings {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .settings-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+            width: 300px;
+        }
+
+        .modal-tabs {
+            display: flex;
+            margin-bottom: 15px;
+        }
+
+        .modal-tab {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .modal-tab.active {
+            border-color: var(--primary);
+        }
+
+        .modal-content {
+            display: none;
+        }
+
+        .modal-content.active {
+            display: block;
+        }
+
+        .modal input {
+            width: 100%;
+            margin: 8px 0;
+            padding: 8px;
+            border: 1px solid var(--border);
+        }
+
+        @media (max-width: 600px) {
+            .links-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <div class="engine-selector" id="engineTabs"></div>
+        <form id="searchForm" onsubmit="return doSearch()">
+            <input type="text" id="searchInput" placeholder="输入搜索内容...">
+        </form>
+    </div>
+
+    <div class="links-grid" id="quickLinks"></div>
+
+    <div class="settings">
+        <button class="settings-btn" onclick="showModal()">+ 添加</button>
+    </div>
+
+    <!-- 添加内容弹窗 -->
+    <div id="addModal" class="modal">
+        <div class="modal-tabs">
+            <div class="modal-tab active" onclick="switchTab('site')">网站</div>
+            <div class="modal-tab" onclick="switchTab('engine')">搜索引擎</div>
+        </div>
+
+        <!-- 添加网站 -->
+        <div id="siteForm" class="modal-content active">
+            <h3>添加网站</h3>
+            <input type="text" id="siteName" placeholder="网站名称">
+            <input type="url" id="siteUrl" placeholder="网站地址">
+            <button onclick="addCustomSite()">确认</button>
+            <button onclick="hideModals()">取消</button>
+        </div>
+
+        <!-- 添加搜索引擎 -->
+        <div id="engineForm" class="modal-content">
+            <h3>添加搜索引擎</h3>
+            <input type="text" id="engineName" placeholder="引擎名称">
+            <input type="url" id="engineUrl" placeholder="搜索URL（包含{q}）">
+            <button onclick="addCustomEngine()">确认</button>
+            <button onclick="hideModals()">取消</button>
+        </div>
+    </div>
+
+    <script>
+        let userData = {
+            engines: [
+                {name: 'Google', url: 'https://www.google.com/search?q={q}'},
+                {name: 'Bing', url: 'https://www.bing.com/search?q={q}'},
+                {name: '百度', url: 'https://www.baidu.com/s?wd={q}'}
+            ],
+            sites: [
+                {name: 'GitHub', url: 'https://github.com'},
+                {name: 'MDN', url: 'https://developer.mozilla.org'}
+            ],
+            currentEngine: 0
+        };
+
+        function init() {
+            loadData();
+            renderEngines();
+            renderLinks();
+        }
+
+        function renderEngines() {
+            const container = document.getElementById('engineTabs');
+            container.innerHTML = userData.engines.map((engine, index) => `
+                <button class="engine-btn ${index === userData.currentEngine ? 'active' : ''}" 
+                        onclick="switchEngine(${index})">
+                    ${engine.name}
+                </button>
+            `).join('');
+        }
+
+        function switchEngine(index) {
+            userData.currentEngine = index;
+            saveData();
+            renderEngines();
+        }
+
+        function renderLinks() {
+            const container = document.getElementById('quickLinks');
+            container.innerHTML = userData.sites.map(site => `
+                <a href="${site.url}" target="_blank" class="link-item">
+                    ${site.name}
+                </a>
+            `).join('');
+        }
+
+        function doSearch() {
+            const query = document.getElementById('searchInput').value;
+            const engine = userData.engines[userData.currentEngine];
+            const searchUrl = engine.url.replace('{q}', encodeURIComponent(query));
+            window.open(searchUrl, '_self');
+            return false;
+        }
+
+        function addCustomSite() {
+            const name = document.getElementById('siteName').value;
+            const url = document.getElementById('siteUrl').value;
+            if (name && url) {
+                userData.sites.push({name, url});
+                saveData();
+                renderLinks();
+                hideModals();
+            }
+        }
+
+        function addCustomEngine() {
+            const name = document.getElementById('engineName').value;
+            const url = document.getElementById('engineUrl').value;
+            if (name && url && url.includes('{q}')) {
+                userData.engines.push({name, url});
+                saveData();
+                renderEngines();
+                hideModals();
+            } else if (!url.includes('{q}')) {
+                alert('URL必须包含{q}作为查询参数占位符');
+            }
+        }
+
+        function switchTab(tabType) {
+            document.querySelectorAll('.modal-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.modal-content').forEach(content => content.classList.remove('active'));
+            
+            document.querySelector(`[onclick="switchTab('${tabType}')"]`).classList.add('active');
+            document.getElementById(`${tabType}Form`).classList.add('active');
+        }
+
+        function showModal() {
+            document.getElementById('addModal').style.display = 'block';
+            switchTab('site'); // 默认显示网站添加
+        }
+
+        function hideModals() {
+            document.getElementById('addModal').style.display = 'none';
+            // 清空输入框
+            document.getElementById('siteName').value = '';
+            document.getElementById('siteUrl').value = '';
+            document.getElementById('engineName').value = '';
+            document.getElementById('engineUrl').value = '';
+        }
+
+        function saveData() {
+            localStorage.setItem('navData', JSON.stringify(userData));
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('navData');
+            if (saved) userData = JSON.parse(saved);
+        }
+
+        init();
+    </script>
+</body>
+</html>
